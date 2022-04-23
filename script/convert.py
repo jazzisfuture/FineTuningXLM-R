@@ -17,6 +17,8 @@
 
 import argparse
 import pathlib
+import os
+import shutil
 
 import fairseq
 import torch
@@ -24,7 +26,7 @@ from fairseq.models.roberta import RobertaModel as FairseqRobertaModel
 from fairseq.modules import TransformerSentenceEncoderLayer
 from packaging import version
 
-from transformers import XLMRobertaConfig, XLMRobertaForMaskedLM, XLMRobertaForSequenceClassification
+from transformers import XLMRobertaConfig, XLMRobertaForMaskedLM, XLMRobertaForSequenceClassification, XLMRobertaTokenizer
 from transformers.models.bert.modeling_bert import (
     BertIntermediate,
     BertLayer,
@@ -46,12 +48,24 @@ SAMPLE_TEXT = "Hello world! cécé herlolip"
 
 
 def convert_roberta_checkpoint_to_pytorch(
-    roberta_checkpoint_path: str, pytorch_dump_folder_path: str, classification_head: bool
+    roberta_checkpoint_path: str, pytorch_dump_folder_path: str, checkpoint_file: str, classification_head: bool
 ):
+    if not os.path.exists(pytorch_dump_folder_path):
+        os.makedirs(pytorch_dump_folder_path)
+    try:    
+        f = open(roberta_checkpoint_path + '/dict.txt')
+        k = open(roberta_checkpoint_path + '/sentencepiece.bpe.model')
+        k.close()
+        f.close()
+    except:
+        raise Exception("Please check 'dict.txt' or 'sentencepiece.bpe.model' in " + roberta_checkpoint_path)
+    shutil.copy(roberta_checkpoint_path + '/dict.txt', pytorch_dump_folder_path + '/dict.txt')
+    shutil.copy(roberta_checkpoint_path + '/sentencepiece.bpe.model', pytorch_dump_folder_path + '/sentencepiece.bpe.model')
+
     """
     Copy/paste/tweak roberta's weights to our BERT structure.
     """
-    roberta = FairseqRobertaModel.from_pretrained(roberta_checkpoint_path)
+    roberta = FairseqRobertaModel.from_pretrained(roberta_checkpoint_path,checkpoint_file=checkpoint_file)
     roberta.eval()  # disable dropout
     roberta_sent_encoder = roberta.model.encoder.sentence_encoder
     config = XLMRobertaConfig(
@@ -164,7 +178,9 @@ def convert_roberta_checkpoint_to_pytorch(
     pathlib.Path(pytorch_dump_folder_path).mkdir(parents=True, exist_ok=True)
     print(f"Saving model to {pytorch_dump_folder_path}")
     model.save_pretrained(pytorch_dump_folder_path)
-
+    tokenizer = XLMRobertaTokenizer.from_pretrained('xlm-roberta-base')
+    
+    tokenizer.save_pretrained(pytorch_dump_folder_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -176,9 +192,12 @@ if __name__ == "__main__":
         "--pytorch_dump_folder_path", default=None, type=str, required=True, help="Path to the output PyTorch model."
     )
     parser.add_argument(
+        "--checkpoint_file", default='model.pt', type=str, required=True, help="Checkpoint name for the model. such as model.pt"
+    )
+    parser.add_argument(
         "--classification_head", action="store_true", help="Whether to convert a final classification head."
     )
     args = parser.parse_args()
     convert_roberta_checkpoint_to_pytorch(
-        args.roberta_checkpoint_path, args.pytorch_dump_folder_path, args.classification_head
+        args.roberta_checkpoint_path, args.pytorch_dump_folder_path, args.checkpoint_file ,args.classification_head
     )
