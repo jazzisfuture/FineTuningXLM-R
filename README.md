@@ -19,7 +19,7 @@ use Fairseq to finetuning XLM-R
 > ![](https://cdn.nlark.com/yuque/0/2022/png/25459708/1650366181533-579071f4-7428-4469-8830-85ecd3a219fc.png#clientId=ub090d48e-59f6-4&crop=0&crop=0&crop=1&crop=1&from=paste&id=u581f2400&margin=%5Bobject%20Object%5D&originHeight=427&originWidth=1620&originalType=url&ratio=1&rotation=0&showTitle=false&status=done&style=none&taskId=u63aa70b6-e5e7-484b-89c7-f50aa079fe9&title=)
 
 
-为了对模型进行继续预训练我们要将平行语料处理为：<br />**<s> a</s></s>b</s>的形式**<br />Transformers的tokenizer提供了这将两个句子处理为TLM输入的能力
+为了对模型进行继续预训练我们要将平行语料处理为：<br />**`<s> a</s></s>b</s>`的形式**<br />Transformers的tokenizer提供了这将两个句子处理为TLM输入的能力
 ```python
 tokenizer.tokenize(the_data,add_special_tokens=True)
 ```
